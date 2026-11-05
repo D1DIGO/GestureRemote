@@ -1,0 +1,54 @@
+{
+  "camera": {
+    "index": 0,
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "backend": "auto",
+    "read_timeout": 3.0
+  },
+  "recognition": {
+    "model_path": "models/gesture_recognizer.task",
+    "detection_confidence": 0.5,
+    "presence_confidence": 0.5,
+    "tracking_confidence": 0.5
+  },
+  "gestures": {
+    "confidence_threshold": 0.75,
+    "confirmation_duration": 0.5,
+    "cooldown": 1.0,
+    "activation_duration": 1.2,
+    "inactivity_timeout": 20.0,
+    "release_duration": 0.3,
+    "max_frame_gap": 0.3,
+    "mappings": {
+      "Open_Palm": "play_pause",
+      "Closed_Fist": "mute",
+      "Thumb_Up": "volume_up",
+      "Thumb_Down": "volume_down",
+      "Pointing_Up": "seek_forward",
+      "ILoveYou": "seek_backward"
+    }
+  },
+  "preprocessing": {
+    "enabled": false,
+    "brightness": 0,
+    "contrast": 1.0,
+    "gamma": 1.0,
+    "clahe": false,
+    "clahe_clip_limit": 2.0,
+    "denoise": false
+  },
+  "vlc": {
+    "host": "127.0.0.1",
+    "port": 8080,
+    "username": "",
+    "password_env": "GESTUREREMOTE_VLC_PASSWORD",
+    "timeout": 0.7,
+    "volume_step": 13,
+    "seek_seconds": 10
+  },
+  "preview": true,
+  "compare_preview": false,
+  "debug": false
+}

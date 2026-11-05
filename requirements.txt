@@ -1,0 +1,5 @@
+# Install only one OpenCV wheel: contrib includes the normal cv2 API.
+mediapipe==0.10.32
+opencv-contrib-python==4.13.0.92
+numpy==2.4.2
+requests==2.32.5
