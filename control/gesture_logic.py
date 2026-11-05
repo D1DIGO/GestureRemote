@@ -15,7 +15,7 @@ class Decision:
 
 
 class GestureStateMachine:
-    """A confirmed hold fires once, then remains latched until a stable release.
+    """Confirmed toggles fire once; configured volume/seek actions repeat.
 
     Unknown/low-confidence hands cancel confirmation but do not count as a
     release. A no-hand interval or a confident different gesture does. Gaps
@@ -32,12 +32,14 @@ class GestureStateMachine:
         self._last_timestamp: float | None = None
         self._last_activity = 0.0
         self._last_actions: dict[str, float] = {}
+        self.feedback = "OFF - hold Victory to enable"
 
     def deactivate(self) -> None:
         """Fail closed after an unsuccessful command; preserve the hold latch."""
         self.active = False
         self._candidate = None
         self._release_since = None
+        self.feedback = "OFF - release, then hold Victory to enable"
 
     def update(self, observation: GestureObservation) -> Decision | None:
         t = observation.timestamp
@@ -52,9 +54,10 @@ class GestureStateMachine:
             self.deactivate()
             return Decision("timeout", t)
 
+        threshold = self.config.confidence_thresholds.get(observation.gesture, self.config.confidence_threshold)
         valid = (observation.hand_detected
                  and math.isfinite(observation.confidence)
-                 and self.config.confidence_threshold <= observation.confidence <= 1
+                 and threshold <= observation.confidence <= 1
                  and observation.gesture in ({"Victory"} | self.config.mappings.keys()))
         gesture = observation.gesture if valid else None
 
@@ -71,27 +74,44 @@ class GestureStateMachine:
 
         if gesture is None:
             self._candidate = None
+            if not self.active:
+                self.feedback = "OFF - hold Victory to enable"
+            elif observation.gesture and observation.confidence < threshold:
+                self.feedback = f"Low confidence: {observation.confidence:.2f} < {threshold:.2f}"
+            else:
+                self.feedback = "Show one clear hand; waiting for a recognized pose"
             return None
         if gesture != self._candidate:
             self._candidate = gesture
             self._candidate_since = t
-        if self._latched is not None:
+        action = self.config.mappings.get(gesture)
+        repeating = self.active and self._latched == gesture and action in self.config.repeat_actions
+        if self._latched is not None and not repeating:
+            self.feedback = "Already sent - release or change gesture" if self.active or gesture == "Victory" else "OFF - hold Victory to enable"
             return None
 
-        duration = self.config.activation_duration if gesture == "Victory" else self.config.confirmation_duration
+        duration = self.config.activation_duration if gesture == "Victory" else self.config.confirmation_durations.get(gesture, self.config.confirmation_duration)
+        if not self.active and gesture != "Victory":
+            self.feedback = "OFF - hold Victory to enable"
+            return None
         if t - self._candidate_since < duration:
+            self.feedback = f"Hold {gesture}: {t - self._candidate_since:.1f}/{duration:.1f}s"
             return None
         if gesture == "Victory":
             self._latched = gesture
             self.active = not self.active
             self._last_activity = t
+            self.feedback = "ON - show a command gesture" if self.active else "OFF - release Victory before reactivating"
             return Decision("activated" if self.active else "deactivated", t)
         if not self.active:
             return None
-        action = self.config.mappings[gesture]
-        if t - self._last_actions.get(action, -math.inf) < self.config.cooldown:
+        interval = max(self.config.cooldown, self.config.repeat_interval) if repeating else self.config.cooldown
+        remaining = interval - (t - self._last_actions.get(action, -math.inf))
+        if remaining > 0:
+            self.feedback = f"{'Repeating' if repeating else 'Cooldown'} {action}: next in {remaining:.1f}s"
             return None
         self._latched = gesture
         self._last_actions[action] = t
         self._last_activity = t
+        self.feedback = f"Sent {action}; " + ("keep holding to repeat" if action in self.config.repeat_actions else "release to use again")
         return Decision("command", t, action)

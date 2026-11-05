@@ -28,7 +28,16 @@
       "Thumb_Down": "volume_down",
       "Pointing_Up": "seek_forward",
       "ILoveYou": "seek_backward"
-    }
+    },
+    "confidence_thresholds": {},
+    "confirmation_durations": {},
+    "repeat_actions": [
+      "volume_up",
+      "volume_down",
+      "seek_forward",
+      "seek_backward"
+    ],
+    "repeat_interval": 1.0
   },
   "preprocessing": {
     "enabled": false,
@@ -46,7 +55,9 @@
     "password_env": "GESTUREREMOTE_VLC_PASSWORD",
     "timeout": 0.7,
     "volume_step": 13,
-    "seek_seconds": 10
+    "seek_seconds": 10,
+    "max_volume": 256,
+    "unmute_volume": 128
   },
   "preview": true,
   "compare_preview": false,

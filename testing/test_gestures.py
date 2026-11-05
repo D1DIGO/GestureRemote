@@ -85,7 +85,12 @@ def test_gesture_action_mapping(gesture, action):
     t = Timeline()
     t.activate()
     assert [e.action for e in t.hold(gesture, 0.7)] == [action]
-    assert t.hold(gesture, 3) == []
+    repeats = t.hold(gesture, 3)
+    if action in t.machine.config.repeat_actions:
+        assert [e.action for e in repeats] == [action] * 3
+        assert all(b.timestamp - a.timestamp >= 1 for a, b in zip(repeats, repeats[1:]))
+    else:
+        assert repeats == []
 
 
 def test_custom_mapping():
@@ -180,3 +185,53 @@ def test_nonincreasing_or_nonfinite_timestamps_rejected(bad_time):
     m.update(GestureObservation(None, 0, 0, False))
     with pytest.raises(ValueError, match="timestamps"):
         m.update(GestureObservation("Victory", 1, bad_time))
+
+
+def test_repeats_stop_on_low_confidence_and_need_a_new_stable_hold():
+    t = Timeline()
+    t.activate()
+    t.hold("Thumb_Up", 1.7)
+    assert t.hold("Thumb_Up", 2, confidence=0.4) == []
+    assert "Low confidence" in t.machine.feedback
+    assert t.hold("Thumb_Up", 0.3) == []
+    assert [e.action for e in t.hold("Thumb_Up", 0.3)] == ["volume_up"]
+
+
+def test_repeats_stop_when_hand_disappears_and_after_deactivation():
+    t = Timeline()
+    t.activate()
+    t.hold("Thumb_Up", 0.7)
+    assert t.hold(None, 1.5) == []
+    assert [e.kind for e in t.hold("Victory", 1.3)] == ["deactivated"]
+    assert t.hold("Thumb_Up", 3) == []
+
+
+def test_repeat_interval_and_cooldown_both_apply():
+    t = Timeline(cooldown=2, repeat_interval=0.5)
+    t.activate()
+    events = t.hold("Thumb_Up", 5)
+    assert len(events) == 3
+    assert all(b.timestamp - a.timestamp >= 2 for a, b in zip(events, events[1:]))
+
+
+def test_repeat_can_be_disabled():
+    t = Timeline(repeat_actions=[])
+    t.activate()
+    assert len(t.hold("Thumb_Up", 4)) == 1
+
+
+def test_palm_threshold_override_and_longer_hold_do_not_weaken_victory():
+    t = Timeline(confidence_thresholds={"Open_Palm": 0.5}, confirmation_durations={"Open_Palm": 0.8})
+    assert t.hold("Victory", 2, confidence=0.6) == []
+    t.activate()
+    assert t.hold("Open_Palm", 0.6, confidence=0.55) == []
+    assert "Hold Open_Palm" in t.machine.feedback
+    assert [e.action for e in t.hold("Open_Palm", 0.3, confidence=0.55)] == ["play_pause"]
+    assert t.hold("Open_Palm", 3, confidence=0.55) == []
+
+
+def test_disabled_feedback_explains_recognized_but_inactive_pose():
+    t = Timeline()
+    t.hold("Open_Palm", 1)
+    assert "OFF" in t.machine.feedback
+    assert "Victory" in t.machine.feedback

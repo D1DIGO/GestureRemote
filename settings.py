@@ -40,12 +40,16 @@ class RecognitionConfig:
 @dataclass(frozen=True)
 class GestureConfig:
     confidence_threshold: float = 0.75
+    confidence_thresholds: dict[str, float] = field(default_factory=dict)
     confirmation_duration: float = 0.5
+    confirmation_durations: dict[str, float] = field(default_factory=dict)
     cooldown: float = 1.0
     activation_duration: float = 1.2
     inactivity_timeout: float = 20.0
     release_duration: float = 0.3
     max_frame_gap: float = 0.3
+    repeat_actions: list[str] = field(default_factory=lambda: ["volume_up", "volume_down", "seek_forward", "seek_backward"])
+    repeat_interval: float = 1.0
     mappings: dict[str, str] = field(default_factory=lambda: DEFAULT_MAPPINGS.copy())
 
 
@@ -69,6 +73,8 @@ class VLCConfig:
     timeout: float = 0.7
     volume_step: int = 13
     seek_seconds: int = 10
+    max_volume: int = 256
+    unmute_volume: int = 128
 
 
 @dataclass(frozen=True)
@@ -116,11 +122,23 @@ def validate(config: AppConfig) -> None:
         _number(f"recognition.{name}", getattr(r, name), 0, 1)
     g = config.gestures
     _number("gestures.confidence_threshold", g.confidence_threshold, 0, 1)
+    for name, low, high in (("confidence_thresholds", 0, 1), ("confirmation_durations", 0.01, 30)):
+        overrides = getattr(g, name)
+        if not isinstance(overrides, dict):
+            raise ConfigError(f"gestures.{name} must be an object")
+        for gesture, value in overrides.items():
+            if gesture not in GESTURES:
+                raise ConfigError(f"gestures.{name}: unknown or reserved gesture {gesture}")
+            _number(f"gestures.{name}.{gesture}", value, low, high)
+    repeatable = {"volume_up", "volume_down", "seek_forward", "seek_backward"}
+    if not isinstance(g.repeat_actions, list) or any(not isinstance(a, str) or a not in repeatable for a in g.repeat_actions):
+        raise ConfigError("gestures.repeat_actions may only contain volume and seek actions; toggles cannot repeat")
+    _number("gestures.repeat_interval", g.repeat_interval, 0.1, 60)
     for name in ("confirmation_duration", "activation_duration", "release_duration", "max_frame_gap"):
         _number(f"gestures.{name}", getattr(g, name), 0.01, 30)
     _number("gestures.cooldown", g.cooldown, 0, 60)
     _number("gestures.inactivity_timeout", g.inactivity_timeout, 1, 3600)
-    if g.inactivity_timeout <= max(g.activation_duration, g.confirmation_duration):
+    if g.inactivity_timeout <= max(g.activation_duration, g.confirmation_duration, *g.confirmation_durations.values()):
         raise ConfigError("gestures.inactivity_timeout must exceed hold durations")
     if not isinstance(g.mappings, dict):
         raise ConfigError("gestures.mappings must be an object")
@@ -146,6 +164,8 @@ def validate(config: AppConfig) -> None:
     _number("vlc.timeout", v.timeout, 0.05, 10)
     _number("vlc.volume_step", v.volume_step, 1, 256, integer=True)
     _number("vlc.seek_seconds", v.seek_seconds, 1, 3600, integer=True)
+    _number("vlc.max_volume", v.max_volume, 1, 512, integer=True)
+    _number("vlc.unmute_volume", v.unmute_volume, 1, v.max_volume, integer=True)
     if not isinstance(v.username, str):
         raise ConfigError("vlc.username must be a string")
     if not isinstance(v.password_env, str) or not v.password_env.isidentifier():

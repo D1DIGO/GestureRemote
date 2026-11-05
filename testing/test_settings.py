@@ -35,6 +35,14 @@ def test_missing_fields_use_defaults(tmp_path):
     {"vlc": {"port": 65536}}, {"vlc": {"password": "never-track-this"}},
     {"vlc": {"password_env": ""}}, {"preprocessing": {"gamma": 0}},
     {"preprocessing": {"enabled": 1}},
+    {"gestures": {"repeat_actions": ["mute"]}},
+    {"gestures": {"repeat_actions": ["play_pause"]}},
+    {"gestures": {"repeat_actions": "volume_up"}},
+    {"gestures": {"repeat_interval": 0}},
+    {"gestures": {"confidence_thresholds": {"Victory": 0.1}}},
+    {"gestures": {"confidence_thresholds": {"Open_Palm": -1}}},
+    {"gestures": {"confirmation_durations": {"Open_Palm": 25}}},
+    {"vlc": {"max_volume": 600}}, {"vlc": {"unmute_volume": 300}},
 ])
 def test_invalid_configuration_has_meaningful_error(tmp_path, data):
     path = tmp_path / "settings.json"

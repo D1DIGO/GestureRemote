@@ -5,7 +5,7 @@ Python **3.14.8**, using a local `.venv` and the pinned requirements.
 
 | Check | Result |
 | --- | --- |
-| `python -m pytest -q` | 117 passed; includes real model blank-frame CPU smoke test |
+| `python -m pytest -q` | 144 passed after the repeat/mute/feedback fixes; includes real model blank-frame CPU smoke test |
 | `python -m pip check` | No broken requirements |
 | `python main.py --check-config` | Configuration valid |
 | `python main.py --help` | CLI starts and lists options |
@@ -14,8 +14,9 @@ Python **3.14.8**, using a local `.venv` and the pinned requirements.
 | Actual application loop | Tested with fake camera/model and mocked VLC, including commands, dry-run, failures, stale frames and cleanup |
 | HTTP syntax | Checked against VideoLAN's VLC 3.x source and request documentation; URL encoding tested |
 | Windows Python 3.11 dependency resolution | pip binary-only cross-platform dry-run resolved the pinned dependencies; this is not a Windows runtime test |
-| Real webcam recognition, distance, dim light, preview | **Not tested** — no camera/display validation available |
-| Real VLC playback and focus independence | **Not tested** — VLC not installed in this environment |
+| Real webcam/preview | Later opened successfully at 1280×720, approximately 10 FPS. User reported detection issues at 0.5m; no formal accuracy/dim-light benchmark |
+| Real VLC playback | Later tested on installed VLC 3.0.24 using temporary silent media: playback state, successive volume changes, ±10s seek, mute to volume zero and restore to 91 confirmed through status |
+| Audible mute / focus independence | Audible effect and a focus-change trial were not measured; audio-output inspection returned no matching sink data |
 | Windows 10/11 and Ubuntu hardware | **Not tested** — provided setup instructions and CI matrix, not claimed results |
 
 Official model: float16/version 1, downloaded from Google's MediaPipe model
@@ -40,3 +41,18 @@ messages, determines the smoke-test outcome.
 
 Run the [physical procedure](PHYSICAL_TESTING.md) before claiming the hardware
 items in the MVP definition of done or any distance/lighting performance target.
+
+## Follow-up from 0.5m user trial
+
+Logs showed Open_Palm scores often around 0.51–0.70 and Thumb_Up around 0.62–0.79,
+below/intermittently crossing the global 0.75 gate. Some palm attempts were made
+after inactivity had disabled control. These are sampled log observations, not
+an accuracy study. Local per-gesture thresholds/holds are now configurable and
+the preview explains why a recognized label does not produce a command.
+
+Mute previously accepted HTTP acknowledgment without checking effects. It now
+sets volume to zero/restores the saved value and checks VLC's reported result.
+The live test also caught VLC representing volume as floating-point numbers;
+both integral and floating-point JSON numbers are handled. Repeated commands,
+interrupted holds, toggle protection, confidence overrides, volume limits,
+unchanged HTTP responses, and the Qt window-close error have regression tests.

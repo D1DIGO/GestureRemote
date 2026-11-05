@@ -7,9 +7,10 @@ required. Windows 10/11 and Linux share the same core code.
 
 **Verification:** the implementation and hardware-independent tests run on
 Fedora 44 with Python 3.14.8. Real CPU inference with the official model has been
-tested. No physical webcam or running VLC was available in the development
-environment. Windows/Ubuntu operation and recognition at distance/in dim light
-must still be checked on hardware. See [verification](docs/VERIFICATION.md) and
+tested. Subsequent laptop checks opened the webcam at approximately 10 FPS and
+verified commands against VLC 3.0.24. User testing at 0.5m identified low-confidence
+palm/thumb detections; formal accuracy and dim-light trials remain outstanding.
+Windows/Ubuntu hardware operation also needs validation. See [verification](docs/VERIFICATION.md) and
 the [physical test procedure](docs/PHYSICAL_TESTING.md). Performance targets are
 goals, not measured capabilities.
 
@@ -150,16 +151,21 @@ parameters (so relative `+` values are encoded correctly):
 
 | Action | HTTP query |
 | --- | --- |
-| Play / pause | `command=pl_pause` |
-| Mute / unmute | `command=key&val=volume-mute` |
-| Volume up / down | `command=volume&val=+13` / `-13` |
+| Play / pause | Read state, then `pl_forcepause`, `pl_forceresume`, or `pl_play` |
+| Mute / unmute | `command=volume&val=0` / remembered previous volume |
+| Volume up / down | Read volume, then set its new absolute value in steps of 13 |
 | Seek forward / backward | `command=seek&val=+10` / `-10` |
 
 Volume uses VLC units: 256 corresponds to 100%, so 13 is approximately five
-percentage points. VLC applies its own limits. `pl_pause` may start the current
-playlist item when stopped. Mute invokes **VLC's internal action over HTTP**;
-it does not press a keyboard key or need focus. It preserves VLC's own mute
-state instead of trying to reconstruct it from volume.
+percentage points. Repeated volume-up stops at `vlc.max_volume` (256, or 100%, by
+default); volume-down stops at zero. Play/pause verifies the resulting state and
+reports when no media is selected. Mute sets volume to zero and remembers the
+previous value in memory; the next fist restores it, capped at `max_volume`.
+If started at zero with no remembered value, `unmute_volume` defaults to 128
+(50%). This is volume-based muting, not VLC's native mute flag; independently
+muted VLC/system audio must be unmuted there. Playback and volume changes are
+checked against returned status, with short read-only polling for delayed updates.
+An unchanged HTTP 200 response is not reported as successful mute/playback.
 
 Command syntax was checked against the [VLC request documentation](https://github.com/videolan/vlc/blob/3.0.x/share/lua/http/requests/README.txt),
 the [VLC 3.x HTTP handler](https://github.com/videolan/vlc/blob/3.0.x/share/lua/intf/modules/httprequests.lua),
@@ -191,14 +197,21 @@ change to a command gesture and hold it for about 0.5 seconds:
 | I love you | `ILoveYou` | Seek backward 10 seconds |
 
 Lower the hand out of view for at least 0.3 seconds, or show a different confident
-mapped gesture, before repeating an action. Holding a pose does **not** repeat
-volume or seek. Keep commands one second apart. Victory is reserved and never
-sends a media command. Holding it again disables control. After 20 seconds
-without an accepted command, control turns off automatically; continued holding
-of a gesture does not reset that timer.
+mapped gesture, before repeating play/pause or mute. **Hold volume or seek
+gestures to repeat once per second**; repeats stop on a missing, changed, or
+low-confidence pose and require a stable hold again after interruption.
+Play/pause, mute, and Victory fire once per hold so they cannot toggle back and
+forth. Set `repeat_actions` to `[]` to disable repetition, or remove selected
+volume/seek actions. The interval is the greater of `repeat_interval` and
+`cooldown`. Victory never sends a media command. After 20 seconds without an
+accepted command, control turns off; repeated accepted commands refresh that
+timer, but simply holding a nonrepeating pose does not.
 
 The preview shows recognition, confidence, control state, last acknowledged
-command, and processed FPS. **Q**, **Esc**, closing the preview, or **Ctrl+C** in
+command, and processed FPS. A separate feedback line explains OFF status,
+low confidence, hold progress, repeat countdown, and release requirements.
+A recognized label alone does not mean its confidence/hold requirements passed.
+**Q**, **Esc**, closing the preview, or **Ctrl+C** in
 the terminal exits. Without preview, use Ctrl+C; status is logged every five
 seconds and commands/state changes are logged immediately. SIGTERM also cleans
 up. A broken camera ends the session instead of replaying old observations.
@@ -230,6 +243,16 @@ configuration file, not the shell working directory. Restart after edits.
 | `preprocessing` | Enabled, brightness offset, contrast multiplier, gamma, CLAHE/clip limit, light Gaussian denoising |
 | `vlc` | Loopback host, port, username, password environment variable name, timeout, volume step, seek seconds |
 | Top level | `preview`, `compare_preview`, `debug` |
+
+`gestures.confidence_thresholds` and `confirmation_durations` accept per-category
+overrides, for example `{"Open_Palm": 0.5, "Thumb_Up": 0.6}` and
+`{"Open_Palm": 0.8, "Thumb_Up": 0.6}` respectively. These values were selected
+for the reported laptop's scores, not validated as universal defaults. Lower
+thresholds can accept more incorrect poses; evaluate them with the physical
+test procedure. Victory retains the global threshold and activation duration.
+`repeat_actions` contains only volume/seek actions and `repeat_interval` is in
+seconds. `vlc.max_volume` caps automatic increases and `unmute_volume` defines
+the fallback when there is no remembered pre-mute volume.
 
 Processing is **off by default**. The initial enhancement values are neutral;
 to evaluate an actual change, set (for example) `gamma` to `1.5` in your local

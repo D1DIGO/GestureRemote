@@ -141,12 +141,13 @@ def run(config: AppConfig, args: argparse.Namespace) -> int:
                 enhanced if config.compare_preview else None, observation,
                 active=machine.active, last_action=last_action, status=status, fps=monitor.fps,
                 preprocessing=config.preprocessing.enabled, dry_run=args.dry_run,
+                feedback=machine.feedback,
             ):
                 break
             if time.monotonic() >= next_report:
-                log.info("Control %s | %s %.2f | %.1f FPS | processing %.1f ms | last: %s",
+                log.info("Control %s | %s %.2f | %.1f FPS | processing %.1f ms | last: %s | %s",
                          "ON" if machine.active else "OFF", observation.gesture or "None", observation.confidence,
-                         monitor.fps, monitor.mean_inference_ms, last_action)
+                         monitor.fps, monitor.mean_inference_ms, last_action, machine.feedback)
                 next_report = time.monotonic() + 5
         log.info("Stopped after %d frames; no-hand frames: %d (not a labeled accuracy measurement)",
                  monitor.frames, monitor.no_hand_frames)

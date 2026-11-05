@@ -44,11 +44,17 @@ operations separate from decision logic.
 
 `OFF → Victory held → ON → Victory held or inactivity → OFF`.
 Inside either state, confirmation tracks one candidate pose and its start time.
-Firing latches that pose. Only a sustained confident change or no-hand interval
-releases the latch. Low confidence cancels confirmation but cannot prove
+Firing latches that pose. Volume/seek actions may repeat while the same confident
+pose remains stable; toggles fire once per hold. A sustained confident change or
+no-hand interval releases the latch. Low confidence cancels confirmation and
+repetition but cannot prove
 release; frame gaps reset timers and preserve the latch. Cooldown is per
 **action**, preventing two differently mapped gestures from bypassing it.
 Activation is independent of media mappings and cannot send a media action.
+Per-gesture confidence and confirmation overrides do not apply to Victory.
+Verify mute/volume and playback state changes, not just HTTP success; VLC Lua
+JSON may report numeric volume as a float. Status polling must never replay a
+failed or uncertain command. Volume-based mute does not manage the native mute flag.
 
 Review edge cases using synthetic timelines, not `sleep()` tests. New logic
 must preserve protection against flickering detections, duplicate timestamps,

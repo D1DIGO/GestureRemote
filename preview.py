@@ -15,7 +15,7 @@ class Preview:
 
     def show(self, original: np.ndarray, enhanced: np.ndarray | None, observation: GestureObservation,
              *, active: bool, last_action: str, status: str, fps: float,
-             preprocessing: bool, dry_run: bool) -> bool:
+             preprocessing: bool, dry_run: bool, feedback: str = "") -> bool:
         def fit(frame):
             return cv2.resize(frame, (640, max(1, round(frame.shape[0] * 640 / frame.shape[1]))))
 
@@ -23,11 +23,12 @@ class Preview:
         if enhanced is not None:
             feed = np.hstack((feed, fit(enhanced)))
         # Separate header keeps labels readable even with 320x240 capture.
-        canvas = np.zeros((feed.shape[0] + 155, feed.shape[1], 3), dtype=np.uint8)
-        canvas[155:] = feed
+        canvas = np.zeros((feed.shape[0] + 183, feed.shape[1], 3), dtype=np.uint8)
+        canvas[183:] = feed
         lines = [
             f"Control: {'ON' if active else 'OFF'}   {'DRY RUN' if dry_run else 'VLC'}   FPS: {fps:.1f}",
             f"Gesture: {observation.gesture or 'None / ambiguous'}   Confidence: {observation.confidence:.2f}",
+            feedback,
             f"Last command: {last_action}",
             status,
             f"Input: {'enhanced' if preprocessing else 'original'} | " + ("Left: original / Right: enhanced" if enhanced is not None else "Hold Victory to toggle control"),
@@ -37,7 +38,13 @@ class Preview:
             cv2.putText(canvas, line[:100], (12, 25 + i * 28), cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 1, cv2.LINE_AA)
         cv2.imshow(WINDOW, canvas)
         key = cv2.waitKey(1) & 0xFF
-        return key not in (ord("q"), ord("Q"), 27) and cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) >= 1
+        if key in (ord("q"), ord("Q"), 27):
+            return False
+        try:
+            return cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) >= 1
+        except cv2.error:
+            # Qt can destroy its receiver as soon as the close button is clicked.
+            return False
 
     def close(self) -> None:
         cv2.destroyAllWindows()

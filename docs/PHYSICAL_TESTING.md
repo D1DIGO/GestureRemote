@@ -33,7 +33,9 @@ do not infer performance on an untested laptop from another machine.
 4. Run normal mode. Verify that gestures while OFF have no playback effect.
    Hold Victory at least 1.2s, then verify one deliberate command. Repeat with
    VLC minimized or another window focused. Mute twice and confirm both the
-   sound and VLC's mute indicator; seek forward/backward and inspect the time.
+   sound and VLC's volume slider (zero, then restored); this application uses
+   volume-based mute. Ensure VLC's separate native mute and system mute are off.
+   Seek forward/backward and inspect the time.
 5. Verify preview Q/Esc/close and terminal Ctrl+C release the webcam. Verify
    `--no-preview` continues to control VLC and logs state changes.
 
@@ -126,9 +128,12 @@ decisions with actual playback success.
   Record false activations and any unintended commands. Repeat 10 minutes
   after intentional activation (reactivate after timeout as needed), recording
   the actual active exposure time as the denominator for false-command rate.
-- Hold each media pose for five seconds. Expect only one command. Briefly
-  occlude/reveal the hand for less than 0.3s; expect no duplicate. Lower it for
-  0.5s and repeat deliberately; expect one new command.
+- Hold palm/fist for five seconds: expect one toggle. Hold volume/seek for five
+  seconds: expect one initial command then spaced repeats at the configured
+  interval (default 1s). Briefly occlude the hand: all repeats must stop, then
+  require confirmation again; toggles must not duplicate on a brief dropout.
+  At maximum volume, continued volume-up must not amplify further. Lower the
+  hand for 0.5s and repeat deliberately to issue a fresh toggle.
 - Hold Victory for longer than the 20s inactivity interval. It may activate
   once and later time out; it must not repeatedly toggle or reactivate.
 - Show low-confidence/partial hands and two hands. Expect no accidental
