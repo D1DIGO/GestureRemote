@@ -71,6 +71,15 @@ python scripts/download_model.py
 python main.py --check-model
 ```
 
+### Arch
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/download_model.py
+```
+
 Use Ubuntu with Python 3.11 or newer (for example Ubuntu 24.04's Python 3.12).
 If your default Python is older, install a supported interpreter first and use
 its versioned command for `venv`. On Linux, auto capture tries V4L2 then the
@@ -149,12 +158,12 @@ Open a local video with audible audio and seekable content before testing.
 The controller sends requests to `/requests/status.json` using Requests query
 parameters (so relative `+` values are encoded correctly):
 
-| Action | HTTP query |
-| --- | --- |
-| Play / pause | Read state, then `pl_forcepause`, `pl_forceresume`, or `pl_play` |
-| Mute / unmute | `command=volume&val=0` / remembered previous volume |
-| Volume up / down | Read volume, then set its new absolute value in steps of 13 |
-| Seek forward / backward | `command=seek&val=+10` / `-10` |
+| Action                  | HTTP query                                                       |
+| ----------------------- | ---------------------------------------------------------------- |
+| Play / pause            | Read state, then `pl_forcepause`, `pl_forceresume`, or `pl_play` |
+| Mute / unmute           | `command=volume&val=0` / remembered previous volume              |
+| Volume up / down        | Read volume, then set its new absolute value in steps of 13      |
+| Seek forward / backward | `command=seek&val=+10` / `-10`                                   |
 
 Volume uses VLC units: 256 corresponds to 100%, so 13 is approximately five
 percentage points. Repeated volume-up stops at `vlc.max_volume` (256, or 100%, by
@@ -186,15 +195,15 @@ Control starts **OFF** every time. Show only one hand, with the full hand inside
 the camera view. Hold Victory for about 1.2 seconds to enable control, then
 change to a command gesture and hold it for about 0.5 seconds:
 
-| Pose | Official category | Default action |
-| --- | --- | --- |
-| Victory / V sign | `Victory` | Enable / disable control (reserved) |
-| Open palm | `Open_Palm` | Play / pause |
-| Closed fist | `Closed_Fist` | Mute / unmute |
-| Thumb up | `Thumb_Up` | Volume up |
-| Thumb down | `Thumb_Down` | Volume down |
-| Index finger up | `Pointing_Up` | Seek forward 10 seconds |
-| I love you | `ILoveYou` | Seek backward 10 seconds |
+| Pose             | Official category | Default action                      |
+| ---------------- | ----------------- | ----------------------------------- |
+| Victory / V sign | `Victory`         | Enable / disable control (reserved) |
+| Open palm        | `Open_Palm`       | Play / pause                        |
+| Closed fist      | `Closed_Fist`     | Mute / unmute                       |
+| Thumb up         | `Thumb_Up`        | Volume up                           |
+| Thumb down       | `Thumb_Down`      | Volume down                         |
+| Index finger up  | `Pointing_Up`     | Seek forward 10 seconds             |
+| I love you       | `ILoveYou`        | Seek backward 10 seconds            |
 
 Lower the hand out of view for at least 0.3 seconds, or show a different confident
 mapped gesture, before repeating play/pause or mute. **Hold volume or seek
@@ -235,14 +244,14 @@ mapping table. Unknown keys, wrong types, invalid ranges, non-loopback hosts,
 and attempts to map Victory are rejected. Model paths are relative to the
 configuration file, not the shell working directory. Restart after edits.
 
-| Section | Settings |
-| --- | --- |
-| `camera` | Index, width/height (1280×720), requested FPS, backend, read timeout |
-| `recognition` | Model path, detection/presence/tracking thresholds (0.5) |
-| `gestures` | Category confidence (0.75), confirmation (0.5s), activation (1.2s), cooldown (1s), release (0.3s), inactivity (20s), max frame gap/age (0.3s), mappings |
-| `preprocessing` | Enabled, brightness offset, contrast multiplier, gamma, CLAHE/clip limit, light Gaussian denoising |
-| `vlc` | Loopback host, port, username, password environment variable name, timeout, volume step, seek seconds |
-| Top level | `preview`, `compare_preview`, `debug` |
+| Section         | Settings                                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `camera`        | Index, width/height (1280×720), requested FPS, backend, read timeout                                                                                    |
+| `recognition`   | Model path, detection/presence/tracking thresholds (0.5)                                                                                                |
+| `gestures`      | Category confidence (0.75), confirmation (0.5s), activation (1.2s), cooldown (1s), release (0.3s), inactivity (20s), max frame gap/age (0.3s), mappings |
+| `preprocessing` | Enabled, brightness offset, contrast multiplier, gamma, CLAHE/clip limit, light Gaussian denoising                                                      |
+| `vlc`           | Loopback host, port, username, password environment variable name, timeout, volume step, seek seconds                                                   |
+| Top level       | `preview`, `compare_preview`, `debug`                                                                                                                   |
 
 `gestures.confidence_thresholds` and `confirmation_durations` accept per-category
 overrides, for example `{"Open_Palm": 0.5, "Thumb_Up": 0.6}` and

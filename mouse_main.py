@@ -155,23 +155,26 @@ def palm_faces_camera(points):
 def move_mouse(points):
     global previous_mouse
 
-    # Use index fingertip
-    x = float(points[8][0])
-    y = float(points[8][1])
+    # Calculate palm center using wrist and finger bases.
+    palm_points = points[[0, 5, 9, 13, 17]]
 
-    # Ignore edges of camera frame
+    x = float(np.mean(palm_points[:, 0]))
+    y = float(np.mean(palm_points[:, 1]))
+
+    # Ignore edges of camera frame.
     x = (x - MOUSE_MARGIN) / (1 - 2 * MOUSE_MARGIN)
     y = (y - MOUSE_MARGIN) / (1 - 2 * MOUSE_MARGIN)
 
     x = np.clip(x, 0, 1)
     y = np.clip(y, 0, 1)
 
-    # Mirror horizontally for intuitive control
+    # Map camera coordinates to screen coordinates.
     target_x = x * SCREEN_WIDTH
     target_y = y * SCREEN_HEIGHT
 
     target = np.array([target_x, target_y])
 
+    # Smooth cursor movement.
     if previous_mouse is None:
         previous_mouse = target
     else:
@@ -296,6 +299,7 @@ try:
             elif closed_hand:
 
                 status = handle_fist()
+                move_mouse(points)
 
             else:
 
