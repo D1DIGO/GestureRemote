@@ -310,6 +310,12 @@ FPS. Per-frame logging and comparison preview themselves have some overhead.
   thread and leaves a stuck daemon to process exit. It never calls native
   `release()` concurrently with `read()`.
 
+## Reading the code
+
+Python modules and tests include short, line-by-line English explanations.
+The [configuration reading guide](docs/CONFIGURATION_GUIDE.md) explains every
+JSON setting and suggests an order for exploring the source.
+
 ## Tests and architecture
 
 ```bash

@@ -1,2 +1,4 @@
+# Include the same runtime dependencies used by the application.
 -r requirements.txt
+# Run the automated tests, fixtures, and parameterized scenarios.
 pytest==9.0.2
