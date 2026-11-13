@@ -1,5 +1,9 @@
 # Install only one OpenCV wheel: contrib includes the normal cv2 API.
+# Run the pretrained gesture recognizer and hand-tracking pipeline on CPU.
 mediapipe==0.10.32
+# Capture webcam frames, enhance images, and draw the preview window.
 opencv-contrib-python==4.13.0.92
+# Represent image arrays and build numerical preprocessing lookup tables.
 numpy==2.4.2
+# Send authenticated HTTP requests to the local VLC interface.
 requests==2.32.5
